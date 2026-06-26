@@ -28,12 +28,17 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_bert_dataloaders(batch_size=32, max_len=128):
     """使用BERT tokenizer加载数据"""
-    print("[BERT] 加载数据...")
+    print("[BERT] 加载数据...", flush=True)
     train_texts, train_labels = load_chnsenticorp("train")
     test_texts, test_labels = load_chnsenticorp("test")
 
-    print("[BERT] 加载BERT tokenizer...")
-    tokenizer = BertTokenizer.from_pretrained(MODEL_NAME)
+    print(f"[BERT] 加载BERT tokenizer ({MODEL_NAME})...", flush=True)
+    try:
+        tokenizer = BertTokenizer.from_pretrained(MODEL_NAME)
+    except Exception as e:
+        print(f"[BERT] 下载tokenizer失败: {e}", flush=True)
+        print("[BERT] 尝试离线加载...", flush=True)
+        tokenizer = BertTokenizer.from_pretrained(MODEL_NAME, local_files_only=True)
 
     train_dataset = BertSentimentDataset(train_texts, train_labels, tokenizer, max_len)
     test_dataset = BertSentimentDataset(test_texts, test_labels, tokenizer, max_len)
@@ -44,7 +49,7 @@ def get_bert_dataloaders(batch_size=32, max_len=128):
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=batch_size, shuffle=False, num_workers=0
     )
-    print(f"[BERT] 训练集: {len(train_dataset)}条, 测试集: {len(test_dataset)}条")
+    print(f"[BERT] 训练集: {len(train_dataset)}条, 测试集: {len(test_dataset)}条", flush=True)
     return train_loader, test_loader
 
 
@@ -93,15 +98,15 @@ def evaluate_model(model, dataloader, criterion, device):
 
 
 def run():
-    print("=" * 60)
-    print("成员3 - BERT微调训练")
-    print("=" * 60)
+    print("=" * 60, flush=True)
+    print("成员3 - BERT微调训练", flush=True)
+    print("=" * 60, flush=True)
 
     # 加载数据
     train_loader, test_loader = get_bert_dataloaders(BATCH_SIZE, MAX_LEN)
 
     # 创建模型
-    print(f"\n[BERT] 加载预训练模型: {MODEL_NAME}")
+    print(f"\n[BERT] 加载预训练模型: {MODEL_NAME}", flush=True)
     model = BertClassifier(model_name=MODEL_NAME)
     model = model.to(DEVICE)
 

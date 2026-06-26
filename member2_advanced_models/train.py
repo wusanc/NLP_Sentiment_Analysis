@@ -97,9 +97,9 @@ def train_model(model, model_name, train_loader, test_loader, device):
 
 
 def run():
-    print("=" * 60)
-    print("成员2 - Attention-LSTM + Transformer训练")
-    print("=" * 60)
+    print("=" * 60, flush=True)
+    print("成员2 - Attention-LSTM + Transformer训练", flush=True)
+    print("=" * 60, flush=True)
     vocab = load_vocab()
     embedding_matrix = load_embedding_matrix()
     train_loader, test_loader, _ = get_dataloaders(vocab, batch_size=BATCH_SIZE)

@@ -102,7 +102,7 @@ def load_chnsenticorp(split: str = "train") -> Tuple[List[str], List[int]]:
     local_path = os.path.join(DATA_DIR, f"{split}.csv")
     if os.path.exists(local_path):
         import pandas as pd
-        df = pd.read_csv(local_path)
+        df = pd.read_csv(local_path, engine="python")
         texts = df["text"].tolist()
         labels = df["label"].tolist()
         # 标签映射：如果存在3类(0,1,2)，过滤掉中性(1)并将2映射为1

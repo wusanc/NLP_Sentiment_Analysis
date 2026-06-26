@@ -35,37 +35,37 @@ def train_word2vec(vector_size: int = 128, window: int = 5, min_count: int = 1,
     print("=" * 50)
 
     # 加载并分词
-    print("\n[1/3] 加载数据并分词...")
+    print("\n[1/3] 加载数据并分词...", flush=True)
     train_texts, _ = load_chnsenticorp("train")
     test_texts, _ = load_chnsenticorp("test")
     all_texts = train_texts + test_texts
     sentences = [tokenize(t) for t in all_texts]
-    print(f"  总句子数: {len(sentences)}")
+    print(f"  总句子数: {len(sentences)}", flush=True)
 
     # 训练Word2Vec
-    print(f"\n[2/3] 训练Word2Vec (dim={vector_size}, window={window})...")
+    print(f"\n[2/3] 训练Word2Vec (dim={vector_size}, window={window})...", flush=True)
     model = Word2Vec(
         sentences=sentences,
         vector_size=vector_size,
         window=window,
         min_count=min_count,
-        workers=4,
+        workers=1,
         epochs=epochs,
-        sg=1  # 使用Skip-gram
+        sg=1
     )
 
     # 保存模型
     os.makedirs(W2V_DIR, exist_ok=True)
     model.save(W2V_PATH)
-    print(f"  Word2Vec模型已保存至 {W2V_PATH}")
-    print(f"  词汇量: {len(model.wv)}")
+    print(f"  Word2Vec模型已保存至 {W2V_PATH}", flush=True)
+    print(f"  词汇量: {len(model.wv)}", flush=True)
 
     # 生成embedding matrix
-    print("\n[3/3] 生成Embedding矩阵...")
+    print("\n[3/3] 生成Embedding矩阵...", flush=True)
     embedding_matrix = get_embedding_matrix(model, vector_size)
 
     # 测试词向量
-    print("\n词向量相似词测试：")
+    print("\n词向量相似词测试：", flush=True)
     test_words = ["不错", "好看", "差", "喜欢"]
     for word in test_words:
         if word in model.wv:
@@ -100,13 +100,13 @@ def get_embedding_matrix(w2v_model=None, vector_size: int = 128, vocab=None):
             embedding_matrix[idx] = w2v_model.wv[word]
             found += 1
 
-    print(f"  Embedding矩阵: ({vocab_size}, {vector_size})")
-    print(f"  词向量覆盖率: {found}/{vocab_size} ({found/vocab_size*100:.1f}%)")
+    print(f"  Embedding矩阵: ({vocab_size}, {vector_size})", flush=True)
+    print(f"  词向量覆盖率: {found}/{vocab_size} ({found/vocab_size*100:.1f}%)", flush=True)
 
     # 保存
     with open(EMBEDDING_MATRIX_PATH, "wb") as f:
         pickle.dump(embedding_matrix, f)
-    print(f"  Embedding矩阵已保存至 {EMBEDDING_MATRIX_PATH}")
+    print(f"  Embedding矩阵已保存至 {EMBEDDING_MATRIX_PATH}", flush=True)
 
     return embedding_matrix
 

@@ -14,7 +14,12 @@ class BertClassifier(nn.Module):
     def __init__(self, model_name: str = "bert-base-chinese", num_classes: int = 2,
                  dropout: float = 0.3, freeze_bert: bool = False):
         super().__init__()
-        self.bert = BertModel.from_pretrained(model_name)
+        try:
+            self.bert = BertModel.from_pretrained(model_name)
+        except Exception as e:
+            print(f"[BERT] 下载模型失败: {e}", flush=True)
+            print("[BERT] 尝试离线加载...", flush=True)
+            self.bert = BertModel.from_pretrained(model_name, local_files_only=True)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(self.bert.config.hidden_size, num_classes)
 
