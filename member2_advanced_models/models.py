@@ -31,7 +31,7 @@ class AttentionLSTM(nn.Module):
     """带注意力机制的BiLSTM文本分类模型"""
 
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int,
-                 num_classes: int = 2, num_layers: int = 1, dropout: float = 0.3,
+                 num_classes: int = 3, num_layers: int = 1, dropout: float = 0.3,
                  pretrained_embeddings=None):
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -87,7 +87,7 @@ class TransformerClassifier(nn.Module):
     """基于Transformer编码器的文本分类模型"""
 
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int,
-                 num_classes: int = 2, num_heads: int = 4, num_layers: int = 2,
+                 num_classes: int = 3, num_heads: int = 4, num_layers: int = 2,
                  dropout: float = 0.3, max_len: int = 256,
                  pretrained_embeddings=None):
         super().__init__()

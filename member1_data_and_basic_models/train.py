@@ -83,9 +83,9 @@ def evaluate_model(model, dataloader, criterion, device):
 
 def train_model(model, model_name: str, train_loader, test_loader, device):
     """完整的训练流程"""
-    print(f"\n{'='*50}")
-    print(f"开始训练: {model_name}")
-    print(f"{'='*50}")
+    print(f"\n{'='*50}", flush=True)
+    print(f"训练模型: {model_name}", flush=True)
+    print(f"{'='*50}", flush=True)
 
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
@@ -113,9 +113,9 @@ def train_model(model, model_name: str, train_loader, test_loader, device):
         test_accs.append(metrics["accuracy"])
 
         elapsed = time.time() - start_time
-        print(f"Epoch {epoch+1}/{EPOCHS} [{elapsed:.1f}s] "
+        print(f"Epoch {epoch+1:2d}/{EPOCHS} [{elapsed:5.1f}s] "
               f"Train Loss={train_loss:.4f} Acc={train_acc:.4f} | "
-              f"Test Loss={test_loss:.4f} Acc={metrics['accuracy']:.4f} F1={metrics['f1']:.4f}")
+              f"Test  Loss={test_loss:.4f} Acc={metrics['accuracy']:.4f} F1={metrics['f1']:.4f}", flush=True)
 
         # 保存最佳模型
         if metrics["f1"] > best_f1:
@@ -130,14 +130,15 @@ def train_model(model, model_name: str, train_loader, test_loader, device):
     # 保存结果
     save_result(model_name, metrics, train_losses, test_losses, train_accs, test_accs)
 
+    print(f"\n{model_name} 训练完成！最佳F1: {best_f1:.4f}", flush=True)
     return metrics
 
 
 def run():
     """运行成员1的所有任务"""
-    print("=" * 60)
-    print("成员1 - 数据预处理 + Word2Vec + RNN/LSTM训练")
-    print("=" * 60)
+    print("=" * 60, flush=True)
+    print("成员1 - 数据预处理 + Word2Vec + RNN/LSTM训练", flush=True)
+    print("=" * 60, flush=True)
 
     # 1. 数据预处理
     from member1_data_and_basic_models.preprocess import preprocess_data
@@ -168,9 +169,11 @@ def run():
     )
     lstm_metrics = train_model(lstm_model, "LSTM", train_loader, test_loader, DEVICE)
 
-    print(f"\n成员1任务完成！")
-    print(f"  RNN  - Accuracy: {rnn_metrics['accuracy']}, F1: {rnn_metrics['f1']}")
-    print(f"  LSTM - Accuracy: {lstm_metrics['accuracy']}, F1: {lstm_metrics['f1']}")
+    print(f"\n{'='*60}", flush=True)
+    print(f"成员1全部完成！", flush=True)
+    print(f"  RNN  - Accuracy: {rnn_metrics['accuracy']:.4f}  F1: {rnn_metrics['f1']:.4f}", flush=True)
+    print(f"  LSTM - Accuracy: {lstm_metrics['accuracy']:.4f}  F1: {lstm_metrics['f1']:.4f}", flush=True)
+    print(f"{'='*60}", flush=True)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ class RNNClassifier(nn.Module):
     """简单RNN文本分类模型"""
 
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int,
-                 num_classes: int = 2, num_layers: int = 1, dropout: float = 0.3,
+                 num_classes: int = 3, num_layers: int = 1, dropout: float = 0.3,
                  pretrained_embeddings=None):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
@@ -44,7 +44,7 @@ class LSTMClassifier(nn.Module):
     """LSTM文本分类模型"""
 
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int,
-                 num_classes: int = 2, num_layers: int = 1, dropout: float = 0.3,
+                 num_classes: int = 3, num_layers: int = 1, dropout: float = 0.3,
                  pretrained_embeddings=None):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)

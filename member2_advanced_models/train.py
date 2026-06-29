@@ -66,9 +66,9 @@ def evaluate_model(model, dataloader, criterion, device):
 
 
 def train_model(model, model_name, train_loader, test_loader, device):
-    print(f"\n{'='*50}")
-    print(f"开始训练: {model_name}")
-    print(f"{'='*50}")
+    print(f"\n{'='*50}", flush=True)
+    print(f"训练模型: {model_name}", flush=True)
+    print(f"{'='*50}", flush=True)
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -83,9 +83,9 @@ def train_model(model, model_name, train_loader, test_loader, device):
         train_losses.append(t_loss); test_losses.append(v_loss)
         train_accs.append(t_acc); test_accs.append(metrics["accuracy"])
         elapsed = time.time() - start
-        print(f"Epoch {epoch+1}/{EPOCHS} [{elapsed:.1f}s] "
+        print(f"Epoch {epoch+1:2d}/{EPOCHS} [{elapsed:5.1f}s] "
               f"Train Loss={t_loss:.4f} Acc={t_acc:.4f} | "
-              f"Test Loss={v_loss:.4f} Acc={metrics['accuracy']:.4f} F1={metrics['f1']:.4f}")
+              f"Test  Loss={v_loss:.4f} Acc={metrics['accuracy']:.4f} F1={metrics['f1']:.4f}", flush=True)
         if metrics["f1"] > best_f1:
             best_f1 = metrics["f1"]
             ckpt = os.path.join(BASE_DIR, "checkpoints", f"{model_name}.pt")
@@ -93,6 +93,7 @@ def train_model(model, model_name, train_loader, test_loader, device):
             torch.save(model.state_dict(), ckpt)
     print_report(labels, preds, model_name)
     save_result(model_name, metrics, train_losses, test_losses, train_accs, test_accs)
+    print(f"\n{model_name} 训练完成！最佳F1: {best_f1:.4f}", flush=True)
     return metrics
 
 
@@ -118,9 +119,11 @@ def run():
     )
     tf_metrics = train_model(tf_model, "Transformer", train_loader, test_loader, DEVICE)
 
-    print(f"\n成员2任务完成！")
-    print(f"  Attention-LSTM - Accuracy: {attn_metrics['accuracy']}, F1: {attn_metrics['f1']}")
-    print(f"  Transformer    - Accuracy: {tf_metrics['accuracy']}, F1: {tf_metrics['f1']}")
+    print(f"\n{'='*60}", flush=True)
+    print(f"成员2全部完成！", flush=True)
+    print(f"  Attention-LSTM - Accuracy: {attn_metrics['accuracy']:.4f}  F1: {attn_metrics['f1']:.4f}", flush=True)
+    print(f"  Transformer    - Accuracy: {tf_metrics['accuracy']:.4f}  F1: {tf_metrics['f1']:.4f}", flush=True)
+    print(f"{'='*60}", flush=True)
 
 
 if __name__ == "__main__":

@@ -7,16 +7,23 @@ import os
 import sys
 import argparse
 
-os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
 
+def check_data():
+    """检查本地数据文件是否存在"""
+    train_path = os.path.join(BASE_DIR, "data", "train.csv")
+    test_path = os.path.join(BASE_DIR, "data", "test.csv")
+    if not os.path.exists(train_path) or not os.path.exists(test_path):
+        print("错误：未找到数据文件！", flush=True)
+        print("请先运行 data/process_data.py 生成训练/测试集", flush=True)
+        sys.exit(1)
+    print("[数据] 本地数据文件检查通过", flush=True)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="中文情感分析系统 - 基于LSTM与Attention")
-    parser.add_argument("--skip-preprocess", action="store_true", help="跳过数据预处理")
-    parser.add_argument("--skip-download", action="store_true", help="跳过数据下载")
+    parser = argparse.ArgumentParser(description="中文情感分析系统")
     parser.add_argument("--member1", action="store_true", help="仅运行成员1(RNN+LSTM)")
     parser.add_argument("--member2", action="store_true", help="仅运行成员2(Attention+Transformer)")
     parser.add_argument("--member3", action="store_true", help="仅运行成员3(BERT)")
@@ -26,13 +33,12 @@ def main():
     run_all = not (args.member1 or args.member2 or args.member3 or args.vis)
 
     # ========================
-    # 0. 数据下载
+    # 0. 数据检查
     # ========================
-    if not args.skip_download:
-        print("\n" + "=" * 60, flush=True)
-        print("[0/4] 数据下载", flush=True)
-        print("=" * 60, flush=True)
-        train_path = os.path.join(BASE_DIR, "data", "train.csv")
+    print("\n" + "=" * 60, flush=True)
+    print("[0/4] 数据检查", flush=True)
+    print("=" * 60, flush=True)
+    check_data()
 
     # ========================
     # 1. 成员1: 数据预处理 + Word2Vec + RNN/LSTM

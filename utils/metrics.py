@@ -19,9 +19,9 @@ RESULTS_DIR = os.path.join(BASE_DIR, "results")
 def evaluate(y_true: List[int], y_pred: List[int]) -> Dict[str, float]:
     """计算所有评估指标"""
     acc = accuracy_score(y_true, y_pred)
-    prec = precision_score(y_true, y_pred, average="binary")
-    rec = recall_score(y_true, y_pred, average="binary")
-    f1 = f1_score(y_true, y_pred, average="binary")
+    prec = precision_score(y_true, y_pred, average="macro")
+    rec = recall_score(y_true, y_pred, average="macro")
+    f1 = f1_score(y_true, y_pred, average="macro")
     return {
         "accuracy": round(acc, 4),
         "precision": round(prec, 4),
@@ -32,12 +32,12 @@ def evaluate(y_true: List[int], y_pred: List[int]) -> Dict[str, float]:
 
 def print_report(y_true: List[int], y_pred: List[int], model_name: str = ""):
     """打印详细分类报告"""
-    print(f"\n{'='*50}")
-    print(f"模型: {model_name}")
-    print(f"{'='*50}")
-    print(classification_report(y_true, y_pred, target_names=["负面", "正面"]))
+    print(f"\n{'='*50}", flush=True)
+    print(f"模型: {model_name} - 测试集结果", flush=True)
+    print(f"{'='*50}", flush=True)
+    print(classification_report(y_true, y_pred, target_names=["负面", "中性", "正面"]), flush=True)
     cm = confusion_matrix(y_true, y_pred)
-    print(f"混淆矩阵:\n{cm}")
+    print(f"混淆矩阵:\n{cm}", flush=True)
 
 
 def save_result(model_name: str, metrics: Dict, train_losses: List[float] = None,
@@ -56,7 +56,7 @@ def save_result(model_name: str, metrics: Dict, train_losses: List[float] = None
     path = os.path.join(RESULTS_DIR, f"{model_name}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"[结果] {model_name} 结果已保存至 {path}")
+    print(f"[结果] {model_name} 已保存至 {path}", flush=True)
 
 
 def load_all_results() -> List[Dict]:

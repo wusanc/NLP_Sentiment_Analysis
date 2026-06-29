@@ -12,11 +12,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
 from gensim.models import Word2Vec
-from utils.dataset import load_vocab, tokenize, load_chnsenticorp, VOCAB_PATH
+from utils.dataset import load_vocab, VOCAB_PATH
 
 W2V_DIR = os.path.join(BASE_DIR, "checkpoints")
 W2V_PATH = os.path.join(W2V_DIR, "word2vec.model")
 EMBEDDING_MATRIX_PATH = os.path.join(W2V_DIR, "embedding_matrix.pkl")
+PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 
 
 def train_word2vec(vector_size: int = 128, window: int = 5, min_count: int = 1,
@@ -30,16 +31,17 @@ def train_word2vec(vector_size: int = 128, window: int = 5, min_count: int = 1,
         min_count: 最小词频
         epochs: 训练轮数
     """
-    print("=" * 50)
-    print("成员1 - Word2Vec词向量训练")
-    print("=" * 50)
+    print("=" * 50, flush=True)
+    print("成员1 - Word2Vec词向量训练", flush=True)
+    print("=" * 50, flush=True)
 
-    # 加载并分词
-    print("\n[1/3] 加载数据并分词...", flush=True)
-    train_texts, _ = load_chnsenticorp("train")
-    test_texts, _ = load_chnsenticorp("test")
-    all_texts = train_texts + test_texts
-    sentences = [tokenize(t) for t in all_texts]
+    # 加载预处理好的分词结果
+    print("\n[1/3] 加载预处理分词结果...", flush=True)
+    with open(os.path.join(PROCESSED_DIR, "train_tokens.pkl"), "rb") as f:
+        train_tokens, _ = pickle.load(f)
+    with open(os.path.join(PROCESSED_DIR, "test_tokens.pkl"), "rb") as f:
+        test_tokens, _ = pickle.load(f)
+    sentences = train_tokens + test_tokens
     print(f"  总句子数: {len(sentences)}", flush=True)
 
     # 训练Word2Vec
@@ -57,7 +59,7 @@ def train_word2vec(vector_size: int = 128, window: int = 5, min_count: int = 1,
     # 保存模型
     os.makedirs(W2V_DIR, exist_ok=True)
     model.save(W2V_PATH)
-    print(f"  Word2Vec模型已保存至 {W2V_PATH}", flush=True)
+    print(f"  模型已保存至 {W2V_PATH}", flush=True)
     print(f"  词汇量: {len(model.wv)}", flush=True)
 
     # 生成embedding matrix
@@ -65,14 +67,15 @@ def train_word2vec(vector_size: int = 128, window: int = 5, min_count: int = 1,
     embedding_matrix = get_embedding_matrix(model, vector_size)
 
     # 测试词向量
-    print("\n词向量相似词测试：", flush=True)
+    print("\n  相似词测试：", flush=True)
     test_words = ["不错", "好看", "差", "喜欢"]
     for word in test_words:
         if word in model.wv:
             similar = model.wv.most_similar(word, topn=5)
             similar_str = ", ".join([f"{w}({s:.2f})" for w, s in similar])
-            print(f"  '{word}' 的相似词: {similar_str}")
+            print(f"    '{word}' → {similar_str}", flush=True)
 
+    print("\nWord2Vec训练完成！", flush=True)
     return model, embedding_matrix
 
 
@@ -100,13 +103,13 @@ def get_embedding_matrix(w2v_model=None, vector_size: int = 128, vocab=None):
             embedding_matrix[idx] = w2v_model.wv[word]
             found += 1
 
-    print(f"  Embedding矩阵: ({vocab_size}, {vector_size})", flush=True)
+    print(f"  矩阵形状: ({vocab_size}, {vector_size})", flush=True)
     print(f"  词向量覆盖率: {found}/{vocab_size} ({found/vocab_size*100:.1f}%)", flush=True)
 
     # 保存
     with open(EMBEDDING_MATRIX_PATH, "wb") as f:
         pickle.dump(embedding_matrix, f)
-    print(f"  Embedding矩阵已保存至 {EMBEDDING_MATRIX_PATH}", flush=True)
+    print(f"  已保存至 {EMBEDDING_MATRIX_PATH}", flush=True)
 
     return embedding_matrix
 

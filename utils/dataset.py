@@ -50,7 +50,7 @@ def save_vocab(vocab: Dict[str, int], path: str = VOCAB_PATH):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(vocab, f, ensure_ascii=False, indent=2)
-    print(f"[数据] 词表已保存至 {path}，共 {len(vocab)} 个词")
+    print(f"[词表] 已保存至 {path}，共 {len(vocab)} 个词", flush=True)
 
 
 def load_vocab(path: str = VOCAB_PATH) -> Dict[str, int]:
@@ -69,22 +69,21 @@ def encode_text(tokens: List[str], vocab: Dict[str, int], max_len: int = MAX_SEQ
 
 
 class SentimentDataset(Dataset):
-    """情感分析PyTorch Dataset"""
+    """情感分析PyTorch Dataset（直接使用预处理好的分词结果）"""
 
-    def __init__(self, texts: List[str], labels: List[int], vocab: Dict[str, int],
+    def __init__(self, tokens: List[List[str]], labels: List[int], vocab: Dict[str, int],
                  max_len: int = MAX_SEQ_LEN):
-        self.texts = texts
+        self.tokens = tokens
         self.labels = labels
         self.vocab = vocab
         self.max_len = max_len
 
     def __len__(self):
-        return len(self.texts)
+        return len(self.tokens)
 
     def __getitem__(self, idx):
-        tokens = tokenize(self.texts[idx])
-        ids = encode_text(tokens, self.vocab, self.max_len)
-        length = min(len(tokens), self.max_len)
+        ids = encode_text(self.tokens[idx], self.vocab, self.max_len)
+        length = min(len(self.tokens[idx]), self.max_len)
         return {
             "input_ids": torch.tensor(ids, dtype=torch.long),
             "length": torch.tensor(length, dtype=torch.long),
@@ -94,41 +93,21 @@ class SentimentDataset(Dataset):
 
 def load_chnsenticorp(split: str = "train") -> Tuple[List[str], List[int]]:
     """
-    加载ChnSentiCorp数据集
-    优先从本地CSV加载，失败则从HuggingFace加载
-    返回: (texts, labels)  labels为0/1二分类
+    加载ChnSentiCorp数据集（纯本地加载，不联网）
+    返回: (texts, labels)  labels为0/1/2三分类
     """
-    # 优先从本地文件加载
     local_path = os.path.join(DATA_DIR, f"{split}.csv")
     if os.path.exists(local_path):
         import pandas as pd
         df = pd.read_csv(local_path, engine="python")
         texts = df["text"].tolist()
         labels = df["label"].tolist()
-        # 标签映射：如果存在3类(0,1,2)，过滤掉中性(1)并将2映射为1
-        unique_labels = set(labels)
-        if unique_labels == {0, 1, 2}:
-            filtered = [(t, l) for t, l in zip(texts, labels) if l != 1]
-            texts = [t for t, l in filtered]
-            labels = [l if l == 0 else 1 for _, l in filtered]
-            print(f"[数据] 从本地文件加载 {split} 集: {len(texts)} 条 (已过滤中性)")
-        else:
-            print(f"[数据] 从本地文件加载 {split} 集: {len(texts)} 条")
+        print(f"[数据集] 加载 {split} 集: {len(texts)} 条", flush=True)
         return texts, labels
-
-    # 尝试从HuggingFace加载
-    try:
-        from datasets import load_dataset
-        dataset = load_dataset("seamew/ChnSentiCorp", split=split)
-        texts = dataset["text"]
-        labels = dataset["label"]
-        print(f"[数据] 从HuggingFace加载 {split} 集: {len(texts)} 条")
-        return texts, labels
-    except Exception as e:
-        print(f"[数据] HuggingFace加载失败: {e}")
 
     raise FileNotFoundError(
-        f"无法加载数据集。请确保 data/{split}.csv 存在"
+        f"无法加载数据集。请确保 data/{split}.csv 存在\n"
+        f"可先运行 data/process_data.py 生成训练/测试集"
     )
 
 
@@ -136,15 +115,24 @@ def get_dataloaders(vocab: Optional[Dict[str, int]] = None, batch_size: int = 64
                     max_len: int = MAX_SEQ_LEN):
     """
     获取训练集和测试集的DataLoader
-    如果未提供词表，则自动构建并保存
+    直接使用预处理好的分词结果，避免重复分词
     """
-    # 加载数据
-    train_texts, train_labels = load_chnsenticorp("train")
-    test_texts, test_labels = load_chnsenticorp("test")
-
-    # 分词
-    print("[数据] 正在分词...")
-    train_tokens = [tokenize(t) for t in train_texts]
+    # 加载预处理好的分词结果
+    processed_dir = os.path.join(DATA_DIR, "processed")
+    train_path = os.path.join(processed_dir, "train_tokens.pkl")
+    test_path = os.path.join(processed_dir, "test_tokens.pkl")
+    
+    if not os.path.exists(train_path) or not os.path.exists(test_path):
+        raise FileNotFoundError(
+            "预处理分词结果不存在！请先运行 member1_data_and_basic_models.preprocess 进行数据预处理"
+        )
+    
+    with open(train_path, "rb") as f:
+        train_tokens, train_labels = pickle.load(f)
+    with open(test_path, "rb") as f:
+        test_tokens, test_labels = pickle.load(f)
+    
+    print(f"[数据集] 加载预处理分词结果: 训练集{len(train_tokens)}条, 测试集{len(test_tokens)}条", flush=True)
 
     # 构建或加载词表
     if vocab is None:
@@ -153,11 +141,11 @@ def get_dataloaders(vocab: Optional[Dict[str, int]] = None, batch_size: int = 64
         else:
             vocab = build_vocab(train_tokens)
             save_vocab(vocab)
-    print(f"[数据] 词表大小: {len(vocab)}")
+    print(f"[词表] 大小: {len(vocab)}", flush=True)
 
     # 创建Dataset
-    train_dataset = SentimentDataset(train_texts, train_labels, vocab, max_len)
-    test_dataset = SentimentDataset(test_texts, test_labels, vocab, max_len)
+    train_dataset = SentimentDataset(train_tokens, train_labels, vocab, max_len)
+    test_dataset = SentimentDataset(test_tokens, test_labels, vocab, max_len)
 
     # 创建DataLoader
     train_loader = torch.utils.data.DataLoader(

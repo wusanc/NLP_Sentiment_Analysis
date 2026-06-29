@@ -163,9 +163,9 @@ def plot_sentiment_distribution():
     _, train_labels = load_chnsenticorp("train")
     counter = Counter(train_labels)
     fig, ax = plt.subplots(figsize=(6, 6))
-    sizes = [counter[0], counter[1]]
-    ax.pie(sizes, labels=["负面", "正面"], autopct="%1.1f%%",
-           colors=["#F44336", "#4CAF50"], startangle=90, textprops={"fontsize": 13})
+    sizes = [counter.get(0, 0), counter.get(1, 0), counter.get(2, 0)]
+    ax.pie(sizes, labels=["负面", "中性", "正面"], autopct="%1.1f%%",
+           colors=["#F44336", "#FFC107", "#4CAF50"], startangle=90, textprops={"fontsize": 13})
     ax.set_title("ChnSentiCorp 训练集情感分布", fontsize=14)
     plt.tight_layout()
     path = os.path.join(PLOT_DIR, "sentiment_distribution.png")
@@ -187,17 +187,20 @@ def plot_wordcloud():
 
     pos_words = []
     neg_words = []
+    neu_words = []
     stopwords = {"的", "了", "是", "在", "我", "有", "和", "就", "不", "人", "都", "一", "一个",
                  "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没有", "看", "好"}
 
     for text, label in zip(train_texts[:2000], train_labels[:2000]):
         words = [w for w in tokenize(text) if w not in stopwords and len(w) > 1]
-        if label == 1:
+        if label == 2:
             pos_words.extend(words)
+        elif label == 1:
+            neu_words.extend(words)
         else:
             neg_words.extend(words)
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
 
     wc_pos = WordCloud(font_path="msyh.ttc", width=600, height=400,
                        background_color="white", max_words=100).generate(" ".join(pos_words))
@@ -208,6 +211,11 @@ def plot_wordcloud():
                        background_color="white", max_words=100).generate(" ".join(neg_words))
     axes[1].imshow(wc_neg, interpolation="bilinear")
     axes[1].axis("off"); axes[1].set_title("负面评论词云", fontsize=13)
+
+    wc_neu = WordCloud(font_path="msyh.ttc", width=600, height=400,
+                       background_color="white", max_words=100).generate(" ".join(neu_words))
+    axes[2].imshow(wc_neu, interpolation="bilinear")
+    axes[2].axis("off"); axes[2].set_title("中性评论词云", fontsize=13)
 
     plt.tight_layout()
     path = os.path.join(PLOT_DIR, "wordcloud.png")

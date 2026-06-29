@@ -11,7 +11,7 @@ from transformers import BertModel, BertTokenizer, AutoTokenizer, AutoModel
 class BertClassifier(nn.Module):
     """基于BERT的中文情感分类模型"""
 
-    def __init__(self, model_name: str = "bert-base-chinese", num_classes: int = 2,
+    def __init__(self, model_name: str = "bert-base-chinese", num_classes: int = 3,
                  dropout: float = 0.3, freeze_bert: bool = False):
         super().__init__()
         try:
@@ -33,7 +33,7 @@ class BertClassifier(nn.Module):
             attention_mask=attention_mask,
             token_type_ids=token_type_ids
         )
-        # 使用[CLS] token的输出
+        # 使用<[BOS_never_used_51bce0c785ca2f68081bfa7d91973934]> token的输出
         cls_output = outputs.last_hidden_state[:, 0, :]
         cls_output = self.dropout(cls_output)
         logits = self.fc(cls_output)
