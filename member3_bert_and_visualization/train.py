@@ -4,6 +4,7 @@
 """
 
 import os
+import re
 import sys
 import time
 import torch
@@ -15,28 +16,41 @@ sys.path.insert(0, BASE_DIR)
 
 from utils.dataset import load_chnsenticorp
 from utils.metrics import evaluate, print_report, save_result
-from member3_bert_and_visualization.models import BertClassifier, BertSentimentDataset, BERT_MODEL_PATH
+from member3_bert_and_visualization.models import BertClassifier, BertSentimentDataset
 from transformers import BertTokenizer
 
+MODEL_NAME = "bert-base-chinese"
 BATCH_SIZE = 32
 EPOCHS = 5
 LEARNING_RATE = 2e-5
 MAX_LEN = 128
-FREEZE_BERT = False  # 设为True可以冻结BERT，只训顶层，速度快很多
+FREEZE_BERT = False
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def clean_text_for_bert(text: str) -> str:
+    """BERT文本清洗：保留中文、英文、数字和基本标点"""
+    text = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9，。！？、；：""''（）《》\s]', '', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
 def get_bert_dataloaders(batch_size=32, max_len=128):
-    """使用本地BERT tokenizer加载数据"""
+    """使用BERT tokenizer加载数据"""
     print("[BERT] 加载数据...", flush=True)
     train_texts, train_labels = load_chnsenticorp("train")
     test_texts, test_labels = load_chnsenticorp("test")
 
-    print(f"[BERT] 加载本地BERT tokenizer...", flush=True)
-    tokenizer = BertTokenizer.from_pretrained(
-        BERT_MODEL_PATH,
-        local_files_only=True
-    )
+    print("[BERT] 清洗文本...", flush=True)
+    train_texts = [clean_text_for_bert(t) for t in train_texts]
+    test_texts = [clean_text_for_bert(t) for t in test_texts]
+
+    print(f"[BERT] 加载BERT tokenizer ({MODEL_NAME})...", flush=True)
+    try:
+        tokenizer = BertTokenizer.from_pretrained(MODEL_NAME)
+    except Exception as e:
+        print(f"[BERT] 下载tokenizer失败: {e}", flush=True)
+        tokenizer = BertTokenizer.from_pretrained(MODEL_NAME, local_files_only=True)
 
     train_dataset = BertSentimentDataset(train_texts, train_labels, tokenizer, max_len)
     test_dataset = BertSentimentDataset(test_texts, test_labels, tokenizer, max_len)
@@ -114,18 +128,17 @@ def evaluate_model(model, dataloader, criterion, device, scaler=None):
 
 def run():
     print("=" * 60, flush=True)
-    print("成员3 - BERT微调训练（纯本地模式）", flush=True)
+    print("成员3 - BERT微调训练", flush=True)
     print("=" * 60, flush=True)
     print(f"[BERT] 设备: {DEVICE}", flush=True)
-    print(f"[BERT] 模型路径: {BERT_MODEL_PATH}", flush=True)
     print(f"[BERT] 冻结BERT: {FREEZE_BERT}", flush=True)
 
     # 加载数据
     train_loader, test_loader = get_bert_dataloaders(BATCH_SIZE, MAX_LEN)
 
     # 创建模型
-    print(f"\n[BERT] 加载本地预训练模型...", flush=True)
-    model = BertClassifier(freeze_bert=FREEZE_BERT)
+    print(f"\n[BERT] 加载预训练模型: {MODEL_NAME}", flush=True)
+    model = BertClassifier(model_name=MODEL_NAME, freeze_bert=FREEZE_BERT)
     model = model.to(DEVICE)
     
     # 统计参数量
