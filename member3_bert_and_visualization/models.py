@@ -3,9 +3,14 @@
 职责：使用HuggingFace transformers实现BERT文本分类
 """
 
+import os
 import torch
 import torch.nn as nn
 from transformers import BertModel, BertTokenizer, AutoTokenizer, AutoModel
+
+# 本地BERT模型路径（供train.py导入使用）
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BERT_MODEL_PATH = os.path.join(BASE_DIR, "data", "bert-base-chinese")
 
 
 class BertClassifier(nn.Module):

@@ -19,9 +19,9 @@ RESULTS_DIR = os.path.join(BASE_DIR, "results")
 def evaluate(y_true: List[int], y_pred: List[int]) -> Dict[str, float]:
     """计算所有评估指标"""
     acc = accuracy_score(y_true, y_pred)
-    prec = precision_score(y_true, y_pred, average="macro")
-    rec = recall_score(y_true, y_pred, average="macro")
-    f1 = f1_score(y_true, y_pred, average="macro")
+    prec = precision_score(y_true, y_pred, average="macro", zero_division=0)
+    rec = recall_score(y_true, y_pred, average="macro", zero_division=0)
+    f1 = f1_score(y_true, y_pred, average="macro", zero_division=0)
     return {
         "accuracy": round(acc, 4),
         "precision": round(prec, 4),
@@ -35,7 +35,7 @@ def print_report(y_true: List[int], y_pred: List[int], model_name: str = ""):
     print(f"\n{'='*50}", flush=True)
     print(f"模型: {model_name} - 测试集结果", flush=True)
     print(f"{'='*50}", flush=True)
-    print(classification_report(y_true, y_pred, target_names=["负面", "中性", "正面"]), flush=True)
+    print(classification_report(y_true, y_pred, target_names=["负面", "中性", "正面"], zero_division=0), flush=True)
     cm = confusion_matrix(y_true, y_pred)
     print(f"混淆矩阵:\n{cm}", flush=True)
 

@@ -19,7 +19,7 @@ from member3_bert_and_visualization.models import BertClassifier, BertSentimentD
 from transformers import BertTokenizer
 
 BATCH_SIZE = 32
-EPOCHS = 3
+EPOCHS = 5
 LEARNING_RATE = 2e-5
 MAX_LEN = 128
 FREEZE_BERT = False  # 设为True可以冻结BERT，只训顶层，速度快很多
@@ -51,7 +51,7 @@ def get_bert_dataloaders(batch_size=32, max_len=128):
     return train_loader, test_loader
 
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device, scheduler=None, scaler=None):
+def train_one_epoch(model, dataloader, criterion, optimizer, device, scaler=None):
     model.train()
     total_loss, correct, total = 0, 0, 0
     for batch in tqdm(dataloader, desc="训练", leave=False):
@@ -64,7 +64,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, scheduler=N
         
         # 混合精度训练（仅GPU有效）
         if scaler is not None:
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast('cuda'):
                 logits = model(input_ids, attention_mask, token_type_ids)
                 loss = criterion(logits, labels)
             scaler.scale(loss).backward()
@@ -78,9 +78,6 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, scheduler=N
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-        
-        if scheduler:
-            scheduler.step()
 
         total_loss += loss.item() * input_ids.size(0)
         correct += (logits.argmax(1) == labels).sum().item()
@@ -100,7 +97,7 @@ def evaluate_model(model, dataloader, criterion, device, scaler=None):
             labels = batch["label"].to(device)
             
             if scaler is not None:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast('cuda'):
                     logits = model(input_ids, attention_mask, token_type_ids)
                     loss = criterion(logits, labels)
             else:
@@ -140,11 +137,10 @@ def run():
     # 训练配置
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)
-    total_steps = len(train_loader) * EPOCHS
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
     
     # 混合精度训练（仅GPU）
-    scaler = torch.cuda.amp.GradScaler() if DEVICE.type == "cuda" else None
+    scaler = torch.amp.GradScaler('cuda') if DEVICE.type == "cuda" else None
     if scaler is not None:
         print(f"[BERT] 已启用混合精度训练（AMP）", flush=True)
 
@@ -153,8 +149,9 @@ def run():
 
     for epoch in range(EPOCHS):
         start = time.time()
-        t_loss, t_acc = train_one_epoch(model, train_loader, criterion, optimizer, DEVICE, scheduler, scaler)
+        t_loss, t_acc = train_one_epoch(model, train_loader, criterion, optimizer, DEVICE, scaler)
         v_loss, metrics, preds, labels = evaluate_model(model, test_loader, criterion, DEVICE, scaler)
+        scheduler.step()
         elapsed = time.time() - start
 
         train_losses.append(t_loss); test_losses.append(v_loss)
